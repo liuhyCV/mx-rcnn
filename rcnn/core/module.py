@@ -80,7 +80,7 @@ class MutableModule(BaseModule):
         return self._curr_module.get_params()
 
     def init_params(self, initializer=Uniform(0.01), arg_params=None, aux_params=None,
-                    allow_missing=False, force_init=False):
+                    allow_missing=False, force_init=False, allow_extra=True):
         if self.params_initialized and not force_init:
             return
         assert self.binded, 'call bind before initializing the parameters'
@@ -90,7 +90,7 @@ class MutableModule(BaseModule):
         self.params_initialized = True
 
     def bind(self, data_shapes, label_shapes=None, for_training=True,
-             inputs_need_grad=False, force_rebind=False, shared_module=None):
+             inputs_need_grad=False, force_rebind=False, shared_module=None, grad_req='write'):
         # in case we already initialized params, keep it
         if self.params_initialized:
             arg_params, aux_params = self.get_params()
@@ -138,12 +138,12 @@ class MutableModule(BaseModule):
                         context=self._context, work_load_list=self._work_load_list,
                         fixed_param_names=self._fixed_param_names)
         module.bind(max_data_shapes, max_label_shapes, for_training, inputs_need_grad,
-                    force_rebind=False, shared_module=None)
+                    force_rebind=False, shared_module=None, grad_req='write')
         self._curr_module = module
 
         # copy back saved params, if already initialized
         if self.params_initialized:
-            self.set_params(arg_params, aux_params)
+            self.set_params(arg_params, aux_params, allow_extra=True)
 
     def init_optimizer(self, kvstore='local', optimizer='sgd',
                        optimizer_params=(('learning_rate', 0.01),), force_init=False):
